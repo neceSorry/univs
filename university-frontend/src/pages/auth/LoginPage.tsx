@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { apiClient } from '../../api/api.client';
 import { useAuthStore } from '../../store/auth.store';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,7 +29,7 @@ export const LoginPage: React.FC = () => {
   const onSubmit = async (data: LoginFormInputs) => {
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:3000/auth/login', data);
+      const response = await apiClient.post('/auth/login', data);
       login(response.data);
       
       const role = response.data.user.role;
