@@ -37,7 +37,7 @@ services:
     plan: free
     envVars:
       - key: VITE_API_URL
-        value: https://university-backend.onrender.com
+        value: https://university-backend-gkgt.onrender.com
 
 databases:
   - name: university-postgres
