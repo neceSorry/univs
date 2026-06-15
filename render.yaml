@@ -4,7 +4,7 @@ services:
     runtime: node
     rootDir: university-backend
     buildCommand: npm ci --include=dev && npm run build
-    startCommand: node dist/main
+    startCommand: node dist/seed && node dist/main
     plan: free
     envVars:
       - key: DATABASE_URL
