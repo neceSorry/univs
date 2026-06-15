@@ -104,7 +104,7 @@ export const StudentProfilePage: React.FC = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="semester" tickFormatter={s => `${s} сем`} />
                     <YAxis domain={[0, 4]} />
-                    <Tooltip formatter={(v: number) => v.toFixed(2)} />
+                    <Tooltip formatter={(v) => typeof v === 'number' ? v.toFixed(2) : v} />
                     <Line type="monotone" dataKey="gpa" stroke="#1677ff" strokeWidth={2} dot={{ r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
