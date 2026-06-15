@@ -33,8 +33,9 @@ services:
     dockerfilePath: ./university-frontend/Dockerfile
     dockerContext: ./university-frontend
     plan: free
-    dockerBuildArgs:
-      VITE_API_URL: https://university-backend.onrender.com
+    envVars:
+      - key: VITE_API_URL
+        value: https://university-backend.onrender.com
 
 databases:
   - name: university-postgres
