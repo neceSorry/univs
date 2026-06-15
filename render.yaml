@@ -13,9 +13,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: SCHEDULER_URL
-        # После деплоя scheduler-а — вставьте его URL сюда вручную
-        # Пример: https://university-scheduler.onrender.com
-        value: "https://university-scheduler.onrender.com"
+        value: https://university-scheduler.onrender.com
       - key: PORT
         value: "3000"
 
@@ -35,11 +33,8 @@ services:
     dockerfilePath: ./university-frontend/Dockerfile
     dockerContext: ./university-frontend
     plan: free
-    buildArgs:
-      # После деплоя backend-а — вставьте его URL сюда вручную
-      # Пример: https://university-backend.onrender.com
-      - key: VITE_API_URL
-        value: "https://university-backend.onrender.com"
+    dockerBuildArgs:
+      VITE_API_URL: https://university-backend.onrender.com
 
 databases:
   - name: university-postgres
