@@ -1,9 +1,10 @@
 services:
   - type: web
     name: university-backend
-    runtime: docker
-    dockerfilePath: ./university-backend/Dockerfile
-    dockerContext: ./university-backend
+    runtime: node
+    rootDir: university-backend
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/main
     plan: free
     envVars:
       - key: DATABASE_URL
@@ -16,22 +17,23 @@ services:
         value: https://university-scheduler.onrender.com
       - key: PORT
         value: "3000"
+      - key: NODE_ENV
+        value: production
 
   - type: web
     name: university-scheduler
-    runtime: docker
-    dockerfilePath: ./scheduler-service/Dockerfile
-    dockerContext: ./scheduler-service
+    runtime: python
+    rootDir: scheduler-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     plan: free
-    envVars:
-      - key: PORT
-        value: "8000"
 
   - type: web
     name: university-frontend
-    runtime: docker
-    dockerfilePath: ./university-frontend/Dockerfile
-    dockerContext: ./university-frontend
+    runtime: node
+    rootDir: university-frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npx serve -s dist -l $PORT
     plan: free
     envVars:
       - key: VITE_API_URL
