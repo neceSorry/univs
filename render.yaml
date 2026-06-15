@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: university-backend
+    runtime: docker
+    dockerfilePath: ./university-backend/Dockerfile
+    dockerContext: ./university-backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: university-postgres
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SCHEDULER_URL
+        # После деплоя scheduler-а — вставьте его URL сюда вручную
+        # Пример: https://university-scheduler.onrender.com
+        value: "https://university-scheduler.onrender.com"
+      - key: PORT
+        value: "3000"
+
+  - type: web
+    name: university-scheduler
+    runtime: docker
+    dockerfilePath: ./scheduler-service/Dockerfile
+    dockerContext: ./scheduler-service
+    plan: free
+    envVars:
+      - key: PORT
+        value: "8000"
+
+  - type: web
+    name: university-frontend
+    runtime: docker
+    dockerfilePath: ./university-frontend/Dockerfile
+    dockerContext: ./university-frontend
+    plan: free
+    buildArgs:
+      # После деплоя backend-а — вставьте его URL сюда вручную
+      # Пример: https://university-backend.onrender.com
+      - key: VITE_API_URL
+        value: "https://university-backend.onrender.com"
+
+databases:
+  - name: university-postgres
+    databaseName: university_db
+    user: admin
+    plan: free
