@@ -14,7 +14,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: SCHEDULER_URL
-        value: https://university-scheduler.onrender.com
+        value: https://university-scheduler-2e1a.onrender.com
       - key: PORT
         value: "3000"
       - key: NODE_ENV
