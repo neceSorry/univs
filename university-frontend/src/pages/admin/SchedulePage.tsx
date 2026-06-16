@@ -167,6 +167,17 @@ export const SchedulePage: React.FC = () => {
     onError: () => message.error('Ошибка при сохранении пожеланий')
   });
 
+  const [capacities, setCapacities] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('classroom_capacities') || '{}'); } catch { return {}; }
+  });
+
+  const handleCapacityChange = (itemId: string, lessonType: string, value: string) => {
+    const key = `${itemId}-${lessonType}`;
+    const next = { ...capacities, [key]: value };
+    setCapacities(next);
+    localStorage.setItem('classroom_capacities', JSON.stringify(next));
+  };
+
   const [prefModalOpen, setPrefModalOpen] = useState(false);
   const [prefViewOnly, setPrefViewOnly] = useState(false);
   const [prefForm] = Form.useForm();
@@ -540,6 +551,19 @@ export const SchedulePage: React.FC = () => {
                 e.currentTarget.blur();
               }
             }}
+          />
+        ),
+      },
+      {
+        title: 'Вместимость', width: '11%',
+        render: (_: any, row: any) => (
+          <InputNumber
+            placeholder="чел."
+            min={1}
+            max={9999}
+            style={{ width: '100%' }}
+            value={capacities[`${row.itemId}-${row.type}`] ? Number(capacities[`${row.itemId}-${row.type}`]) : undefined}
+            onChange={(val) => handleCapacityChange(row.itemId, row.type, val != null ? String(val) : '')}
           />
         ),
       },

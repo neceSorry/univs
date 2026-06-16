@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Student } from '../entities/student.entity';
 import { Institute } from '../entities/institute.entity';
 import { Payment } from '../entities/payment.entity';
+import { GradeBookEntry } from '../entities/grade-book-entry.entity';
 import { RolesGuard } from '../auth/roles.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -14,26 +15,64 @@ export class AnalyticsService {
     @InjectRepository(Student) private studentRepo: Repository<Student>,
     @InjectRepository(Institute) private instituteRepo: Repository<Institute>,
     @InjectRepository(Payment) private paymentRepo: Repository<Payment>,
+    @InjectRepository(GradeBookEntry) private gradeBookRepo: Repository<GradeBookEntry>,
   ) {}
 
   async getGpaRanking(scope: string, scopeId: string, semester: number, academicYear: string) {
     const students = await this.studentRepo.find({ relations: ['group', 'group.program', 'group.program.department', 'group.program.department.institute'] });
-    
+
     let filtered = students;
     if (scope === 'group' && scopeId) filtered = filtered.filter(s => s.group?.id === scopeId);
     if (scope === 'program' && scopeId) filtered = filtered.filter(s => s.group?.program?.id === scopeId);
     if (scope === 'department' && scopeId) filtered = filtered.filter(s => s.group?.program?.department?.id === scopeId);
     if (scope === 'institute' && scopeId) filtered = filtered.filter(s => s.group?.program?.department?.institute?.id === scopeId);
 
-    const ranked = filtered.map((s, i) => ({
-      id: s.id,
-      name: `${s.last_name} ${s.first_name}`,
-      group: s.group?.name || 'N/A',
-      gpa: Number((Math.random() * (4.0 - 2.5) + 2.5).toFixed(2)),
-      attendance_rate: Math.floor(Math.random() * 40) + 60
-    }));
+    // Fetch all grade book entries for filtered students in one query
+    const studentIds = filtered.map(s => s.id);
+    if (studentIds.length === 0) return { data: [] };
 
-    ranked.sort((a, b) => b.gpa - a.gpa || b.attendance_rate - a.attendance_rate);
+    const allEntries = await this.gradeBookRepo
+      .createQueryBuilder('e')
+      .where('e.student_id IN (:...ids)', { ids: studentIds })
+      .getMany();
+
+    const ranked = filtered.map(s => {
+      const entries = allEntries.filter(e => e.student_id === s.id);
+
+      // GPA: entries with lesson_date = null are final grades (value '2'-'5')
+      const finalGrades = entries
+        .filter(e => e.lesson_date === null && e.value !== '' && !isNaN(Number(e.value)))
+        .map(e => Number(e.value));
+      const gpa = finalGrades.length > 0
+        ? Number((finalGrades.reduce((sum, g) => sum + g, 0) / finalGrades.length).toFixed(2))
+        : null;
+
+      // Attendance: entries with lesson_date set; '+' or non-empty value = attended
+      const dailyEntries = entries.filter(e => e.lesson_date !== null);
+      const attendedCount = dailyEntries.filter(e => e.value === '+' || (e.value !== '' && !isNaN(Number(e.value)))).length;
+      const attendance_rate = dailyEntries.length > 0
+        ? Math.round((attendedCount / dailyEntries.length) * 100)
+        : null;
+
+      return {
+        id: s.id,
+        name: `${s.last_name} ${s.first_name}`,
+        group: s.group?.name || 'N/A',
+        gpa,
+        attendance_rate,
+        grades_count: finalGrades.length,
+      };
+    });
+
+    // Students with real grades first, then alphabetically; exclude those with no data
+    ranked.sort((a, b) => {
+      if (b.gpa !== null && a.gpa === null) return 1;
+      if (a.gpa !== null && b.gpa === null) return -1;
+      if (a.gpa !== null && b.gpa !== null && b.gpa !== a.gpa) return b.gpa - a.gpa;
+      if (a.attendance_rate !== null && b.attendance_rate !== null) return b.attendance_rate - a.attendance_rate;
+      return 0;
+    });
+
     const data = ranked.map((s, idx) => ({ ...s, rank: idx + 1 }));
     return { data };
   }
@@ -146,5 +185,5 @@ export class AnalyticsController {
   @Get('payments-stats') getPaymentsStats(@Query('semester') s: number, @Query('academicYear') y: string) { return this.service.getPaymentsStats(s, y); }
 }
 
-@Module({ imports: [TypeOrmModule.forFeature([Student, Institute, Payment])], controllers: [AnalyticsController], providers: [AnalyticsService] })
+@Module({ imports: [TypeOrmModule.forFeature([Student, Institute, Payment, GradeBookEntry])], controllers: [AnalyticsController], providers: [AnalyticsService] })
 export class AnalyticsModule {}
