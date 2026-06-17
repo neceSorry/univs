@@ -462,8 +462,13 @@ export class ScheduleController {
   @Roles('admin')
   @RequirePermission('schedule.generate')
   @Post('generate')
-  generate(@Body() dto: any, @Request() req: any) {
-    return this.service.generate(dto, req.user);
+  async generate(@Body() dto: any, @Request() req: any) {
+    try {
+      return await this.service.generate(dto, req.user);
+    } catch (e) {
+      console.error('GENERATE ERROR:', e?.message, e?.stack);
+      throw e;
+    }
   }
 
   @Get()
