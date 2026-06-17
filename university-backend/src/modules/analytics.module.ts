@@ -40,7 +40,8 @@ export class AnalyticsService {
     // GPA: from grades table (0-100 score), type MANUAL = final grade set by admin
     const allGrades = await this.gradeRepo
       .createQueryBuilder('g')
-      .where('g.studentId IN (:...ids)', { ids: studentIds })
+      .leftJoinAndSelect('g.student', 'student')
+      .where('student.id IN (:...ids)', { ids: studentIds })
       .andWhere('g.grade_type = :type', { type: GradeType.MANUAL })
       .getMany();
 
