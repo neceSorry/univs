@@ -11,6 +11,8 @@ import { Student } from '../entities/student.entity';
 import { Group } from '../entities/group.entity';
 import { Exam, ExamStatus } from '../entities/exam.entity';
 import { GradeBookEntry } from '../entities/grade-book-entry.entity';
+import { Grade, GradeType } from '../entities/grade.entity';
+import { Discipline } from '../entities/discipline.entity';
 
 @Injectable()
 export class TeacherCabinetService {
@@ -22,6 +24,8 @@ export class TeacherCabinetService {
     @InjectRepository(Group) private groupRepo: Repository<Group>,
     @InjectRepository(Exam) private examRepo: Repository<Exam>,
     @InjectRepository(GradeBookEntry) private gradeBookRepo: Repository<GradeBookEntry>,
+    @InjectRepository(Grade) private gradeRepo: Repository<Grade>,
+    @InjectRepository(Discipline) private disciplineRepo: Repository<Discipline>,
   ) {}
 
   async getTeacherByUserId(userId: string) {
@@ -139,6 +143,27 @@ export class TeacherCabinetService {
         value: e.value,
       }));
       await this.gradeBookRepo.save(rows);
+
+      // Sync final scores (lesson_date = null) to grades table for transcript
+      const finalEntries = entries.filter(e => e.lesson_date === null && e.value !== '' && !isNaN(Number(e.value)));
+      for (const e of finalEntries) {
+        const score = Number(e.value);
+        const existing = await this.gradeRepo.findOne({
+          where: { student: { id: e.student_id }, discipline: { id: disciplineId }, grade_type: GradeType.MANUAL },
+        });
+        if (existing) {
+          await this.gradeRepo.update(existing.id, { grade_value: score });
+        } else {
+          const grade = this.gradeRepo.create({
+            grade_value: score,
+            grade_type: GradeType.MANUAL,
+            student: { id: e.student_id },
+            discipline: { id: disciplineId },
+            slot: null,
+          });
+          await this.gradeRepo.save(grade);
+        }
+      }
     }
     return { data: { saved: entries.length } };
   }
@@ -221,7 +246,7 @@ export class TeacherCabinetController {
 }
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Teacher, CurriculumItem, ScheduleSlot, Student, Group, Exam, GradeBookEntry])],
+  imports: [TypeOrmModule.forFeature([Teacher, CurriculumItem, ScheduleSlot, Student, Group, Exam, GradeBookEntry, Grade, Discipline])],
   controllers: [TeacherCabinetController],
   providers: [TeacherCabinetService],
 })
