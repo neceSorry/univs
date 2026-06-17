@@ -266,7 +266,7 @@ const FinanceTab: React.FC = () => {
             size="small"
             dataSource={fin.overdue_students || []}
             rowKey="id"
-            pagination={{ pageSize: 10 }}
+            pagination={false}
             columns={[
               { title: 'ФИО', dataIndex: 'name' },
               { title: 'Группа', dataIndex: 'group' },
