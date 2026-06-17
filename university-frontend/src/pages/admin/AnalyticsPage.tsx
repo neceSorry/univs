@@ -216,7 +216,7 @@ const FinanceTab: React.FC = () => {
 
   const { data: fin } = useQuery({
     queryKey: ['analytics-finance'],
-    queryFn: () => apiClient.get('/analytics/payments-stats?semester=1&academicYear=2023-2024').then(res => res.data.data),
+    queryFn: () => apiClient.get('/analytics/payments-stats').then(res => res.data.data),
   });
 
   if (!fin) return null;

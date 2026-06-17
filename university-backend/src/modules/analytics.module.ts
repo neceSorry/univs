@@ -150,7 +150,10 @@ export class AnalyticsService {
   }
 
   async getPaymentsStats(semester: number, academicYear: string) {
-    const payments = await this.paymentRepo.find({ where: { semester, academic_year: academicYear }, relations: ['student', 'student.group'] });
+    const where: any = {};
+    if (semester) where.semester = semester;
+    if (academicYear) where.academic_year = academicYear;
+    const payments = await this.paymentRepo.find({ where, relations: ['student', 'student.group'] });
     let total_due = 0;
     let total_paid = 0;
     let overdue_count = 0;
