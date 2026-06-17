@@ -50,7 +50,7 @@ const RankingTab: React.FC = () => {
     },
     { title: 'ФИО', dataIndex: 'name' },
     { title: 'Группа', dataIndex: 'group' },
-    { title: 'GPA', dataIndex: 'gpa', render: (v: number) => <strong>{v.toFixed(2)}</strong> },
+    { title: 'GPA', dataIndex: 'gpa', render: (v: number | null) => v != null ? <strong>{v.toFixed(2)}</strong> : '—' },
     { title: 'Посещаемость', dataIndex: 'attendance_rate', render: (v: number) => `${v}%` },
   ];
 
