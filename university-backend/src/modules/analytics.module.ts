@@ -5,6 +5,7 @@ import { Student } from '../entities/student.entity';
 import { Institute } from '../entities/institute.entity';
 import { Payment } from '../entities/payment.entity';
 import { GradeBookEntry } from '../entities/grade-book-entry.entity';
+import { Grade, GradeType } from '../entities/grade.entity';
 import { RolesGuard } from '../auth/roles.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -16,6 +17,7 @@ export class AnalyticsService {
     @InjectRepository(Institute) private instituteRepo: Repository<Institute>,
     @InjectRepository(Payment) private paymentRepo: Repository<Payment>,
     @InjectRepository(GradeBookEntry) private gradeBookRepo: Repository<GradeBookEntry>,
+    @InjectRepository(Grade) private gradeRepo: Repository<Grade>,
   ) {}
 
   async getGpaRanking(scope: string, scopeId: string, semester: number, academicYear: string) {
@@ -27,7 +29,6 @@ export class AnalyticsService {
     if (scope === 'department' && scopeId) filtered = filtered.filter(s => s.group?.program?.department?.id === scopeId);
     if (scope === 'institute' && scopeId) filtered = filtered.filter(s => s.group?.program?.department?.institute?.id === scopeId);
 
-    // Fetch all grade book entries for filtered students in one query
     const studentIds = filtered.map(s => s.id);
     if (studentIds.length === 0) return { data: [] };
 
@@ -36,7 +37,14 @@ export class AnalyticsService {
       .where('e.student_id IN (:...ids)', { ids: studentIds })
       .getMany();
 
-    // Total lesson dates per group (union of all dates any student in the group has a record)
+    // GPA: from grades table (0-100 score), type MANUAL = final grade set by admin
+    const allGrades = await this.gradeRepo
+      .createQueryBuilder('g')
+      .where('g.studentId IN (:...ids)', { ids: studentIds })
+      .andWhere('g.grade_type = :type', { type: GradeType.MANUAL })
+      .getMany();
+
+    // Total lesson dates per group
     const groupLessonDates = new Map<string, Set<string>>();
     for (const e of allEntries) {
       if (e.lesson_date === null) continue;
@@ -47,20 +55,21 @@ export class AnalyticsService {
 
     const ranked = filtered.map(s => {
       const entries = allEntries.filter(e => e.student_id === s.id);
+      const grades = allGrades.filter(g => g.student?.id === s.id);
 
-      // GPA: entries with lesson_date = null are final grades (value '2'-'5')
-      const finalGrades = entries
-        .filter(e => e.lesson_date === null && e.value !== '' && !isNaN(Number(e.value)))
-        .map(e => Number(e.value));
-      const gpa = finalGrades.length > 0
-        ? Number((finalGrades.reduce((sum, g) => sum + g, 0) / finalGrades.length).toFixed(2))
+      // GPA: average of final scores (0-100) converted to 5-point scale
+      const scores = grades.map(g => Number(g.grade_value)).filter(v => !isNaN(v) && v > 0);
+      const avgScore = scores.length > 0
+        ? scores.reduce((sum, v) => sum + v, 0) / scores.length
+        : null;
+      const gpa = avgScore !== null
+        ? Number((avgScore / 20).toFixed(2))  // 100→5, 80→4, 60→3
         : null;
 
       // Attendance: attended / total lessons for this student's group
       const dailyEntries = entries.filter(e => e.lesson_date !== null);
       const attendedCount = dailyEntries.filter(e => e.value === '+' || (e.value !== '' && !isNaN(Number(e.value)))).length;
 
-      // Total lessons = all unique dates across all disciplines for this group
       let totalLessons = 0;
       for (const [key, dates] of groupLessonDates.entries()) {
         if (key.startsWith(s.group?.id ?? '')) totalLessons += dates.size;
@@ -76,7 +85,7 @@ export class AnalyticsService {
         group: s.group?.name || 'N/A',
         gpa,
         attendance_rate,
-        grades_count: finalGrades.length,
+        grades_count: scores.length,
       };
     });
 
@@ -201,5 +210,5 @@ export class AnalyticsController {
   @Get('payments-stats') getPaymentsStats(@Query('semester') s: number, @Query('academicYear') y: string) { return this.service.getPaymentsStats(s, y); }
 }
 
-@Module({ imports: [TypeOrmModule.forFeature([Student, Institute, Payment, GradeBookEntry])], controllers: [AnalyticsController], providers: [AnalyticsService] })
+@Module({ imports: [TypeOrmModule.forFeature([Student, Institute, Payment, GradeBookEntry, Grade])], controllers: [AnalyticsController], providers: [AnalyticsService] })
 export class AnalyticsModule {}
