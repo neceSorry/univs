@@ -36,6 +36,15 @@ export class AnalyticsService {
       .where('e.student_id IN (:...ids)', { ids: studentIds })
       .getMany();
 
+    // Total lesson dates per group (union of all dates any student in the group has a record)
+    const groupLessonDates = new Map<string, Set<string>>();
+    for (const e of allEntries) {
+      if (e.lesson_date === null) continue;
+      const key = `${e.group_id}__${e.discipline_id}`;
+      if (!groupLessonDates.has(key)) groupLessonDates.set(key, new Set());
+      groupLessonDates.get(key)!.add(e.lesson_date);
+    }
+
     const ranked = filtered.map(s => {
       const entries = allEntries.filter(e => e.student_id === s.id);
 
@@ -47,11 +56,18 @@ export class AnalyticsService {
         ? Number((finalGrades.reduce((sum, g) => sum + g, 0) / finalGrades.length).toFixed(2))
         : null;
 
-      // Attendance: entries with lesson_date set; '+' or non-empty value = attended
+      // Attendance: attended / total lessons for this student's group
       const dailyEntries = entries.filter(e => e.lesson_date !== null);
       const attendedCount = dailyEntries.filter(e => e.value === '+' || (e.value !== '' && !isNaN(Number(e.value)))).length;
-      const attendance_rate = dailyEntries.length > 0
-        ? Math.round((attendedCount / dailyEntries.length) * 100)
+
+      // Total lessons = all unique dates across all disciplines for this group
+      let totalLessons = 0;
+      for (const [key, dates] of groupLessonDates.entries()) {
+        if (key.startsWith(s.group?.id ?? '')) totalLessons += dates.size;
+      }
+
+      const attendance_rate = totalLessons > 0
+        ? Math.round((attendedCount / totalLessons) * 100)
         : null;
 
       return {
