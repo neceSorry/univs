@@ -105,14 +105,12 @@ const GeneralStatsTab: React.FC = () => {
   const statusData = [
     { name: 'Активных', value: stats.by_status.active, color: '#3f8600' },
     { name: 'Отчисленных', value: stats.by_status.expelled, color: '#cf1322' },
-    { name: 'Академический отпуск', value: stats.by_status.academic_leave ?? 0, color: '#faad14' },
   ];
 
   const segmentOptions = [
     { label: 'Все студенты', value: 'all' },
     { label: 'По статусу', value: 'status' },
     { label: 'Тип финансирования', value: 'enrollment' },
-    { label: 'Форма обучения', value: 'study_form' },
     { label: 'По курсам', value: 'course' },
     { label: 'По институтам', value: 'institute' },
   ];
