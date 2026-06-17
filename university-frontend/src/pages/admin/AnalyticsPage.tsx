@@ -240,8 +240,8 @@ const FinanceTab: React.FC = () => {
       <Card style={{ minHeight: 360 }}>
         {activeFilter === 'summary' && (
           <Row gutter={[24, 24]}>
-            <Col span={12}><Statistic title="Всего к оплате" value={fin.total_due} suffix="₸" /></Col>
-            <Col span={12}><Statistic title="Оплачено" value={fin.total_paid} suffix="₸" valueStyle={{ color: '#3f8600' }} /></Col>
+            <Col span={12}><Statistic title="Всего к оплате" value={fin.total_due} suffix=" сом" /></Col>
+            <Col span={12}><Statistic title="Оплачено" value={fin.total_paid} suffix=" сом" valueStyle={{ color: '#3f8600' }} /></Col>
             <Col span={12}><Statistic title="Процент оплаты" value={fin.payment_rate_percent} suffix="%" /></Col>
             <Col span={12}><Statistic title="Должников" value={fin.overdue_count} valueStyle={{ color: '#cf1322' }} /></Col>
           </Row>
@@ -270,7 +270,7 @@ const FinanceTab: React.FC = () => {
             columns={[
               { title: 'ФИО', dataIndex: 'name' },
               { title: 'Группа', dataIndex: 'group' },
-              { title: 'Долг', dataIndex: 'debt', render: (v: number) => <span style={{ color: 'red', fontWeight: 'bold' }}>{v.toLocaleString()} ₸</span>, sorter: (a: any, b: any) => b.debt - a.debt },
+              { title: 'Долг', dataIndex: 'debt', render: (v: number) => <span style={{ color: 'red', fontWeight: 'bold' }}>{v.toLocaleString()} сом</span>, sorter: (a: any, b: any) => b.debt - a.debt },
             ]}
           />
         )}
