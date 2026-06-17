@@ -148,9 +148,12 @@ export class TeacherCabinetService {
       const finalEntries = entries.filter(e => e.lesson_date === null && e.value !== '' && !isNaN(Number(e.value)));
       for (const e of finalEntries) {
         const score = Number(e.value);
-        const existing = await this.gradeRepo.findOne({
-          where: { student: { id: e.student_id }, discipline: { id: disciplineId }, grade_type: GradeType.MANUAL },
-        });
+        const existing = await this.gradeRepo
+          .createQueryBuilder('g')
+          .where('g.studentId = :sid', { sid: e.student_id })
+          .andWhere('g.disciplineId = :did', { did: disciplineId })
+          .andWhere('g.grade_type = :type', { type: GradeType.MANUAL })
+          .getOne();
         if (existing) {
           await this.gradeRepo.update(existing.id, { grade_value: score });
         } else {
